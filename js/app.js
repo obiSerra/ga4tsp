@@ -1,38 +1,57 @@
 (function () {
 
+
+	// -- Settings
 	var map = [],
 	populationSize = 100,
 	killingRate = populationSize/2,
 	generations = 100,
 	mutationRate = 50;
 
-	function generateCanvas () {
-		var canvas = document.createElement("canvas");
 
-		canvas.setAttribute('width', 600);
-		canvas.setAttribute('height', 600);
-		canvas.style.border = '1px solid #000';
-		document.body.appendChild(canvas);
+	// -- Html element getter functions
 
-		return canvas;
+	function getCanvas () {
+		return document.getElementById("points-plot");
 	}
 
-	function generateStartBtn () {
-		var button = document.createElement("button");
+	function getStartBtn () {
+		return document.getElementById("run-btn");
+	}
 
-		button.setAttribute('type', 'button');
-		button.innerText = 'Start';
+	function getTicksCountContainer () {
+		return document.getElementById("ticks-count");
+	}
 
-		document.body.appendChild(button);
-
-		return button;
+	function getRankContainer () {
+		return document.getElementById("rank");
 	}
 
 	function getCtx (canvas) {
-		var ctx = canvas.getContext('2d');
-
-		return ctx;
+		return canvas.getContext('2d');
 	}
+
+	function getFeedbackContainer () {
+		return document.getElementById('feedback');
+	}
+
+	function giveFeedback (text, positive) {
+		var feedCont = getFeedbackContainer();
+
+		feedCont.innerText = text;
+		if (positive) {
+			feedCont.style.color = '#00FF00';
+		} else {
+			feedCont.style.color = '#FF0000';
+		}
+	}
+
+	function resetFeedback () {
+		getFeedbackContainer().innerText = '';
+	}
+
+
+	// -- Drawing functions
 
 	function drawPoint (ctx, point) {
 		ctx.beginPath();
@@ -57,13 +76,34 @@
 		});
 	}
 
-
 	function generateNewPoint (ctx, x, y) {
 		var point = {x: x, y: y};
 
 		drawPoint(ctx, point);
 
 		return point;
+	}
+
+	// -- GA functions
+
+	function removeDuplicates (arIn) {
+		var arOut = [];
+
+		arIn.forEach(function (el, key) {
+			var found = false;
+			arOut.some(function (innerEl, innerKey) {
+				if (el.x === innerEl.x && el.y === innerEl.y) {
+					found = true;
+					return true;
+				}
+			});
+
+			if (!found) {
+				arOut.push(el);
+			}
+		});
+
+		return arOut;
 	}
 
 	function generateChromosome (points) {
@@ -160,7 +200,6 @@
 			});
 		});
 
-
 		if (checkChromosomeIsValid(child)){
 			return child;
 		} else {
@@ -195,11 +234,9 @@
 	}
 
 	function doMutation (chr) {
-		//population.forEach(function (chr) {
 			if (Math.floor(Math.random() * 100) <= mutationRate) {
 				chr = mutate(chr);
 			}
-		//});
 		return chr;
 	}
 
@@ -244,25 +281,27 @@
 		return newGen;
 	}
 
-	function triggerNewGen (ticks, population, cb) {
+	function triggerNewGen (ticks, population, cb, tickContainer, rankContainer) {
 		setTimeout(function () {
 			var newPopulation,
 				winnerSolution;
 			ticks = ticks - 1;
-
-			console.log(ticks);
 
 			newPopulation = makeNewGeneration(population);
 
 			if (ticks > 0) {
 				winnerSolution = makeRanking(newPopulation)[newPopulation.length-1];
 
-				console.log('tick ', ticks, 'rank', winnerSolution.rank);
-				triggerNewGen(ticks, newPopulation, cb);
+				if (tickContainer) {
+					tickContainer.innerText = ticks;
+				}
+
+				if (rankContainer) {
+					rankContainer.innerText = winnerSolution.rank;
+				}
+				triggerNewGen(ticks, newPopulation, cb, tickContainer, rankContainer);
 			} else {
 				winnerSolution = makeRanking(newPopulation)[newPopulation.length-1];
-
-				console.log('DOOOONE', winnerSolution);
 				cb(winnerSolution.chromosome);
 			}
 
@@ -270,8 +309,10 @@
 	}
 
 	function init () {
-		var button = generateStartBtn(),
-			canvas = generateCanvas(),
+		var button = getStartBtn(),
+			canvas = getCanvas(),
+			tickContainer = getTicksCountContainer(),
+			rankContainer = getRankContainer(),
 			ctx = getCtx(canvas),
 			running = false,
 			population;
@@ -290,31 +331,35 @@
 
 
 		button.addEventListener('click', function (event) {
+			var cleanMap = removeDuplicates(map);
 
-			ctx.clearRect ( 0 , 0 , canvas.width, canvas.height );
+			if (cleanMap.length < 2){
+				giveFeedback('Please add more points ', false);
+			} else if (!running) {
+				resetFeedback();
 
-			map.forEach(function (point) {
-				drawPoint(ctx, point);
-			});
+				ctx.clearRect ( 0 , 0 , canvas.width, canvas.height );
 
-			population = generatePopulation(map);
+				cleanMap.forEach(function (point) {
+					drawPoint(ctx, point);
+				});
 
-			running = true;
-			triggerNewGen(generations, population, function (res) {
-				running = false;
-				drawGraph(ctx, res);
-			});
+				population = generatePopulation(cleanMap);
+
+				running = true;
+				triggerNewGen(generations, population, function (res) {
+					running = false;
+					drawGraph(ctx, res);
+				}, tickContainer, rankContainer);
+			}
 
 			return false;
 		});
-
-		/*
-
-
-
-		*/
 	}
 
+
+
+	// -- Let's start
 	init();
 
 } ());
