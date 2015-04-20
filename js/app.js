@@ -6,26 +6,20 @@
 	generations = 100,
 	mutationRate = 50;
 
-	function generateCanvas () {
-		var canvas = document.createElement("canvas");
-
-		canvas.setAttribute('width', 600);
-		canvas.setAttribute('height', 600);
-		canvas.style.border = '1px solid #000';
-		document.body.appendChild(canvas);
-
-		return canvas;
+	function getCanvas () {
+		return document.getElementById("points-plot");
 	}
 
-	function generateStartBtn () {
-		var button = document.createElement("button");
+	function getStartBtn () {
+		return document.getElementById("run-btn");
+	}
 
-		button.setAttribute('type', 'button');
-		button.innerText = 'Start';
+	function getTicksCountContainer () {
+		return document.getElementById("ticks-count");
+	}
 
-		document.body.appendChild(button);
-
-		return button;
+	function getRankContainer () {
+		return document.getElementById("rank");
 	}
 
 	function getCtx (canvas) {
@@ -244,25 +238,27 @@
 		return newGen;
 	}
 
-	function triggerNewGen (ticks, population, cb) {
+	function triggerNewGen (ticks, population, cb, tickContainer, rankContainer) {
 		setTimeout(function () {
 			var newPopulation,
 				winnerSolution;
 			ticks = ticks - 1;
-
-			console.log(ticks);
 
 			newPopulation = makeNewGeneration(population);
 
 			if (ticks > 0) {
 				winnerSolution = makeRanking(newPopulation)[newPopulation.length-1];
 
-				console.log('tick ', ticks, 'rank', winnerSolution.rank);
-				triggerNewGen(ticks, newPopulation, cb);
+				if (tickContainer) {
+					tickContainer.innerText = ticks;
+				}
+
+				if (rankContainer) {
+					rankContainer.innerText = winnerSolution.rank;
+				}
+				triggerNewGen(ticks, newPopulation, cb, tickContainer, rankContainer);
 			} else {
 				winnerSolution = makeRanking(newPopulation)[newPopulation.length-1];
-
-				console.log('DOOOONE', winnerSolution);
 				cb(winnerSolution.chromosome);
 			}
 
@@ -270,8 +266,10 @@
 	}
 
 	function init () {
-		var button = generateStartBtn(),
-			canvas = generateCanvas(),
+		var button = getStartBtn(),
+			canvas = getCanvas(),
+			tickContainer = getTicksCountContainer(),
+			rankContainer = getRankContainer(),
 			ctx = getCtx(canvas),
 			running = false,
 			population;
@@ -303,18 +301,15 @@
 			triggerNewGen(generations, population, function (res) {
 				running = false;
 				drawGraph(ctx, res);
-			});
+			}, tickContainer, rankContainer);
 
 			return false;
 		});
-
-		/*
-
-
-
-		*/
 	}
 
+
+
+	// -- Let's start
 	init();
 
 } ());
