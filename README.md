@@ -1,4 +1,4 @@
-#Genetic Algorithm to solve the Travelling Salesman Problem
+# Genetic Algorithm to solve the Travelling Salesman Problem
 
 This script is a simple and light implementation of a Genetic Algorithm in to solve the famous Travelling Salesman Problem. 
 It is done in vanilla Javascript, and it uses a canvas to visualize the result and to interact with the user.
